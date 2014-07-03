@@ -132,15 +132,15 @@ void run_read_write_test(UNUSED io_backender_t *io_backender,
 
         class : public broadcaster_t::write_callback_t, public cond_t {
         public:
-            void on_response(peer_id_t, const write_response_t &) {
-                /* Ignore. */
-            }
-            void on_done() {
+            void on_success(const write_response_t &) {
                 pulse();
+            }
+            void on_failure(UNUSED bool might_have_been_run) {
+                EXPECT_TRUE(false);
             }
         } write_callback;
         cond_t non_interruptor;
-        spawn_write_fake_ack_checker_t ack_checker;
+        fake_ack_checker_t ack_checker(1);
         (*broadcaster)->spawn_write(w, &exiter, order_source->check_in("unittest::run_read_write_test(write)"), &write_callback, &non_interruptor, &ack_checker);
         write_callback.wait_lazily_unordered();
     }
@@ -173,14 +173,14 @@ static void write_to_broadcaster(broadcaster_t *broadcaster, const std::string& 
     write_t w = mock_overwrite(key, value);
     class : public broadcaster_t::write_callback_t, public cond_t {
     public:
-        void on_response(peer_id_t, const write_response_t &) {
-            /* Ignore. */
-        }
-        void on_done() {
-            pulse();
-        }
+        void on_success(const write_response_t &) {
+			pulse();
+		}
+		void on_failure(UNUSED bool might_have_been_run) {
+			EXPECT_TRUE(false);
+		}
     } write_callback;
-    spawn_write_fake_ack_checker_t ack_checker;
+    fake_ack_checker_t ack_checker(1);
     cond_t non_interruptor;
     broadcaster->spawn_write(w, &exiter, otok, &write_callback, &non_interruptor, &ack_checker);
     write_callback.wait_lazily_unordered();
